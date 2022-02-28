@@ -3,7 +3,7 @@
   hosts: nodes
   gather_facts: true
   become: true
-  vars_files: 
+  vars_files:
     - vars/vars.yaml
   tasks:
     - name: Create nginx repo definition
@@ -14,15 +14,13 @@
         group: root
         mode: 0644
 
-
     - name: Install nginx and python2-cryptography
       yum:
-        name: 
+        name:
           - nginx
           - python2-cryptography
         update_cache: true
         state: present
-
 
     - name: Insert firewalld rule for nginx
       firewalld:
@@ -35,7 +33,6 @@
         - "{{ nginx_port_no_tls }}"
         - "{{ nginx_port_tls }}"
 
-
     - name: Copy main nginx config file
       copy:
         src: files/nginx.conf
@@ -44,7 +41,6 @@
         group: root
         mode: 0644
       notify: Restart nginx
-
 
     - name: Clear /etc/conf.d directory
       file:
@@ -57,7 +53,6 @@
         - absent
         - directory
 
-
     - name: Create /etc/nginx/ssl directory
       file:
         state: directory
@@ -66,31 +61,27 @@
         group: root
         mode: 0755
 
-
     - name: Generate OpenSSL private key
       openssl_privatekey:
-        path: "{{ nginx_ssl_directory }}/{{ server_hostname }}_privkey.pem"
+        path: "{{ nginx_ssl_directory }}/{{ ansible_host }}_privkey.pem"
         size: "{{ key_size }}"
         type: "{{ key_type }}"
 
-
     - name: Generate OpenSSL certificate signing request
       openssl_csr:
-        path: "{{ nginx_ssl_directory }}/{{ server_hostname }}.csr"
-        privatekey_path: "{{ nginx_ssl_directory }}/{{ server_hostname }}_privkey.pem"
-        country_name: RU
-        organization_name: Tensor
-        email_address: vi.romashov@tensor.ru
-        common_name: ansible2
-
+        path: "{{ nginx_ssl_directory }}/{{ ansible_host }}.csr"
+        privatekey_path: "{{ nginx_ssl_directory }}/{{ ansible_host }}_privkey.pem"
+        country_name: "{{ country_name }}"
+        organization_name: "{{ organization_name }}"
+        email_address: "{{ email_address }}"
+        common_name: "{{ ansible_host }}"
 
     - name: Generate OpenSSL certificate
       openssl_certificate:
-        path: "{{ nginx_ssl_directory }}/{{ server_hostname }}.crt"
-        privatekey_path: "{{ nginx_ssl_directory }}/{{ server_hostname }}_privkey.pem"
-        csr_path: "{{ nginx_ssl_directory }}/{{ server_hostname }}.csr"
+        path: "{{ nginx_ssl_directory }}/{{ ansible_host }}.crt"
+        privatekey_path: "{{ nginx_ssl_directory }}/{{ ansible_host }}_privkey.pem"
+        csr_path: "{{ nginx_ssl_directory }}/{{ ansible_host }}.csr"
         provider: selfsigned
-
 
     - name: Copy site's nginx config file
       template:
@@ -101,7 +92,6 @@
         mode: 0644
       notify: Restart nginx
 
-
     - name: Copy index.html
       template:
         src: templates/index.html.j2
@@ -111,13 +101,11 @@
         mode: 0644
       notify: Restart nginx
 
-
     - name: Ensure nginx is enabled and started
       service:
         name: nginx
         state: started
         enabled: true
-
 
   handlers:
     - name: Restart nginx
